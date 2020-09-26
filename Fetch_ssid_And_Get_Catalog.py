@@ -6,7 +6,7 @@ import sys
 
 import faulthandler
 
-from openSQwindow import save_catalog_from_ss
+from openSQwindow2 import save_catalog_from_ss
 
 
 
@@ -15,6 +15,9 @@ target_dir=r"D:\AllDowns\newbooks"
 catalog_dir=r"D:\AllDowns\newbooks\catalogs"
 
 error_dir=r"D:\AllDowns\newbooks\catalogs\errors"
+error_path=r"D:\AllDowns\newbooks\catalogs\errors\fetch-errors.txt"
+if os.path.exists(error_path):
+    open(error_path,"w").close()
 
 ct_dir=r"D:\刺头书\ucdrs无书签"
 

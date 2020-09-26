@@ -6,15 +6,43 @@ import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
-
 import sys
+
+import win32clipboard
+import chardet  # 八进制转中文
+
+
+def getText():
+    # 读取剪切板
+    # https://www.wandouip.com/t5i58809/
+    win32clipboard.OpenClipboard()  # 打开剪切板
+
+    # 使用CF_UNICODETEXT可以直接得到中文
+    d = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)  # 得到剪切板上的数据
+
+    win32clipboard.CloseClipboard()  # 关闭剪切板
+
+    return d
+
+
 
 qingtian_name="书签获取小工具2015.05.05  【晴天软件】"
 target_dir=r"D:\All_SS_bookmarks"
 qingtian_path=r"C:\Program Files\Shuqian\晴天软件_书签获取软件V0505.exe"
 
+# while True:
+#     tempt = win32api.GetCursorPos() # 记录鼠标所处位置的坐标
+# #     x = tempt[0]-choose_rect[0] # 计算相对x坐标
+# #     y = tempt[1]-choose_rect[1] # 计算相对y坐标
+#     print(tempt)
+#     time.sleep(0.5) # 每0.5s输出一次
 
 
+
+def click_on_pos(pos_list):
+    btn_pos = pos_list
+    win32api.SetCursorPos(btn_pos)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP | win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
 
 # https://python3-cookbook.readthedocs.io/zh_CN/latest/c05/p15_printing_bad_filenames.html
 def bad_filename(filename):
@@ -47,13 +75,13 @@ def get_hd_from_child_hds(father_hd,some_idx,expect_name):
 def save_catalog_from_ss(ss,target_dir2=target_dir,filename=None,error_dir=None):
     startAt=time.time()
 
-    # os.startfile(qingtian_path)
+    os.startfile(qingtian_path)
 
-    SW_MINIMIZE = 6
-    info = subprocess.STARTUPINFO()
-    info.dwFlags = subprocess.STARTF_USESHOWWINDOW
-    info.wShowWindow = SW_MINIMIZE
-    subprocess.Popen(qingtian_path, startupinfo=info)
+    # SW_MINIMIZE = 6
+    # info = subprocess.STARTUPINFO()
+    # info.dwFlags = subprocess.STARTF_USESHOWWINDOW
+    # info.wShowWindow = SW_MINIMIZE
+    # subprocess.Popen(qingtian_path, startupinfo=info)
 
     # 这里启动也需要停一阵子（至少2秒）
 
@@ -62,69 +90,71 @@ def save_catalog_from_ss(ss,target_dir2=target_dir,filename=None,error_dir=None)
     qingtian_hd=win32gui.FindWindowEx(None,0,0,qingtian_name)
     feedSS_hd=get_hd_from_child_hds(qingtian_hd,6,'')
     win32gui.SendMessage(feedSS_hd,win32con.WM_SETTEXT,0,ss)
-    time.sleep(5)
+    time.sleep(1)
     print("gg")
 
     # 这里有爬虫，需要停一阵子（至少1秒）...
 
-    time.sleep(1)
+    # time.sleep(2)
     # huoquzhong_hd=get_hd_from_child_hds(qingtian_hd,5,"获取")
     # cnt=0
     # while cnt!=5:
-    bookmark_hd=get_hd_from_child_hds(qingtian_hd,1,'')
-    # time.sleep(0.5)
-        # cnt+=1
-        # time.sleep(0.5)
-    # https: // blog.csdn.net / qq_41928442 / article / details / 88937337
 
-    # https://stackoverflow.com/questions/53182704/python-memorybuffer-pywin32
-    # 听人劝吃饱饭...
+    bookmark_pos=(755, 378)
+    click_on_pos(bookmark_pos)
 
-    # length = win32gui.SendMessage(bookmark_hd, win32con.WM_GETTEXTLENGTH)*2+2
-    length = win32gui.SendMessage(bookmark_hd, win32con.WM_GETTEXTLENGTH,0,0)*2+2
+    # 全选操作
+
+    win32api.keybd_event(17,0,0,0)  #ctrl键位码是17
+    win32api.keybd_event(65,0,0,0)  #A键位码是65
+    win32api.keybd_event(65,0,win32con.KEYEVENTF_KEYUP,0) #释放按键
+    win32api.keybd_event(17,0,win32con.KEYEVENTF_KEYUP,0)
+
+    # 复制操作
+
+    win32api.keybd_event(17,0,0,0)  #ctrl键位码是17
+    win32api.keybd_event(67,0,0,0)  #C键位码是67
+    win32api.keybd_event(67,0,win32con.KEYEVENTF_KEYUP,0) #释放按键
+    win32api.keybd_event(17,0,win32con.KEYEVENTF_KEYUP,0)
+
     time.sleep(1)
-    buf = win32gui.PyMakeBuffer(length)
-    #发送获取文本请求
-    win32api.SendMessage(bookmark_hd, win32con.WM_GETTEXT, length, buf)
-    #下面应该是将内存读取文本
 
-    time.sleep(1)
+    text = getText()  # 得到剪切板上的八进制数据
+    # byte_str_charset = chardet.detect(byte_str)  # 获取字节码编码格式
+    # print(byte_str_charset)
+    # byte_str = str(byte_str, byte_str_charset.get('encoding'))  # 将八进制字节转化为字符串
+    print(text)
 
-    # text=buf[:length]
-
-    address, length = win32gui.PyGetBufferAddressAndLen(buf[:-1])
-    time.sleep(1)
-    text = win32gui.PyGetString(address, length)
-    time.sleep(1)
-    error_line="没有查询到此SS的书签！"
+    error_line = "没有查询到此SS的书签！"
     # try:
     #     print("Text:\t",text)
     # except UnicodeEncodeError:
     #     print("Text:\t",bad_filename(text))
     # print("Text type:\t",type(text))
-    print("Text len:",len(text))
+    print("Text len:", len(text))
     if error_line in text:
-        ss="error_"+ss
+        ss = "error_" + ss
     try:
-        with open(target_dir2+os.sep+ss+".txt","w",encoding="utf-8") as f:
-            if len(text)<=10:
+        with open(target_dir2 + os.sep + ss + ".txt", "w", encoding="utf-8") as f:
+            if len(text) <= 10:
                 raise Exception
             f.write(text)
-        if filename!=None:
+        if filename != None:
             assert not filename.endswith(".pdf")
-            os.rename(target_dir2+os.sep+ss+".txt",target_dir2+os.sep+ss+"ssidssid"+filename+".txt")
-        with open(target_dir2+os.sep+"already_save.txt","a",encoding="utf-8") as f:
-            f.write(ori_ss+"\n")
+            os.rename(target_dir2 + os.sep + ss + ".txt", target_dir2 + os.sep + ss + "ssidssid" + filename + ".txt")
+        with open(target_dir2 + os.sep + "already_save.txt", "a", encoding="utf-8") as f:
+            f.write(ori_ss + "\n")
     except Exception:
-        if os.path.exists(target_dir2+os.sep+ss+".txt"):
-            os.remove(target_dir2+os.sep+ss+".txt")
-        if error_dir!=None:
+        if os.path.exists(target_dir2 + os.sep + ss + ".txt"):
+            os.remove(target_dir2 + os.sep + ss + ".txt")
+        if error_dir != None:
             if not os.path.exists(error_dir):
                 os.makedirs(error_dir)
-            with open(f"{error_dir}{os.sep}fetch-errors.txt","a",encoding="utf-8") as f:
-                f.write(ss+"\t\t\t"+filename+"\n")
+            with open(f"{error_dir}{os.sep}fetch-errors.txt", "a", encoding="utf-8") as f:
+                f.write(ss + "\t\t\t" + filename + "\n")
         print(f"{ss} 无法写入！")
         pass
+
     win32gui.PostMessage(qingtian_hd,win32con.WM_CLOSE,0,0)
     time.sleep(1)
     endAt=time.time()
