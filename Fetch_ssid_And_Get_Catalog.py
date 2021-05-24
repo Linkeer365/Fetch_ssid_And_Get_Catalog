@@ -4,9 +4,12 @@ from lxml import etree
 import time
 import sys
 
+import re
+
 import faulthandler
 
-from openSQwindow2 import save_catalog_from_ss
+# from openSQwindow2 import save_catalog_from_ss
+from openSQwindow4 import save_catalog_from_ss
 
 
 
@@ -14,10 +17,15 @@ target_dir=r"D:\AllDowns\newbooks"
 
 catalog_dir=r"D:\AllDowns\newbooks\catalogs"
 
+error2_path=r"D:\AllDowns\newbooks\catalogs\error-notfetch.txt"
+
 error_dir=r"D:\AllDowns\newbooks\catalogs\errors"
 error_path=r"D:\AllDowns\newbooks\catalogs\errors\fetch-errors.txt"
 if os.path.exists(error_path):
     open(error_path,"w").close()
+
+if os.path.exists(error2_path):
+    open(error2_path,"w").close()
 
 ct_dir=r"D:\刺头书\ucdrs无书签"
 
@@ -44,12 +52,48 @@ def get_ssid(some_isbn):
     time.sleep(1)
     html=etree.HTML(page_text)
     patt="//input[@type='hidden' and starts-with(@id,'ssid')]//@value"
+    patt2="//span[@class='fc-green']//text()"
     ssids=html.xpath(patt)
-    print("ssids:\t",ssids)
+    ssid_infos=html.xpath(patt2)
+
+    print("ssid_infos_list:",ssid_infos)
+
     if any(ssids):
         print("Fetched!")
+
+        ssid_infos2=[]
+        # 这个数字可以设得很大...
+        for each in range(1,100):
+        # 注意这里是>=，逻辑细节！！
+            if len(ssid_infos)>=8*each:
+                ssid_info="".join(ssid_infos[8*(each-1):8*each])
+                ssid_infos2.append(ssid_info)
+            else:
+                break
+        ssid_infos=ssid_infos2
+
         ssids=[each for each in ssids if bool(each)!=0]
-        ssids_s = ",".join(ssids)
+
+        # 这里可能会出现ssid_infos比ssids长的情况，于是
+
+        ssid_infos=ssid_infos[0:len(ssids)]
+
+        print("ssids:\t",ssids)
+        print("ssid-infos:\t",ssid_infos)
+
+
+        # 但这可能会有后续的bug，也就是类似于这样的 ['13243341', '', '','10421402', '13528633']
+        # 这个东西''在前面这样的情况...
+
+        if len(ssids)>1:
+            for each_idx,each_info in enumerate(ssid_infos,1):
+                if ssids[each_idx-1]:
+                    print(each_info,"\t\t\t",each_idx)
+            choice_idx=int(input("Your choice:"))-1
+            ssids_s=ssids[choice_idx]
+        elif len(ssids)==1:
+            ssids_s = ssids[0]
+        return ssids_s
     else:
         print("Not fetched!")
         ssids_s="NIL"
@@ -77,6 +121,7 @@ def main():
     for each in books:
         if not flag:
             name,isbn=each,each.split("isbnisbn")[1].strip(".pdf")
+            print(f"\nName:{name}\nISBN:{isbn}\n")
             ssid=get_ssid(isbn)
             if ssid=="NIL":
                 os.rename(f"{target_dir}{os.sep}{each}",f"{ct_dir}{os.sep}{each}")
@@ -107,12 +152,24 @@ def main():
                 save_catalog_from_ss(each_ssid,target_dir2=catalog_dir,filename=name.strip(".pdf"),error_dir=error_dir)
     print("Phase 2: done.")
 
+    for each in os.listdir(catalog_dir):
+        if each.startswith("error"):
+            with open(error2_path,"a",encoding="utf-8") as f:
+                f.write(each+"\n")
+    print("Phase 3: done.")
+
     print("all done.")
 
 
-
-
+def waibao():
+    one_one="9787108028938"
+    multi="9787108016386"
+    bad="978754424251"
+    get_ssid(one_one)
+    get_ssid(multi)
+    get_ssid(bad)
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    waibao()

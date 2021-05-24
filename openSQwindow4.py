@@ -8,8 +8,6 @@ from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import sys
 
-import faulthandler
-
 import win32clipboard
 import chardet  # 八进制转中文
 
@@ -75,9 +73,16 @@ def get_hd_from_child_hds(father_hd,some_idx,expect_name):
         return None
 
 def save_catalog_from_ss(ss,target_dir2=target_dir,filename=None,error_dir=None):
-    startAt=time.time()
+    # startAt=time.time()
 
-    os.startfile(qingtian_path)
+    # os.startfile(qingtian_path)
+
+    startAt=time.time()
+    SW_MINIMIZE = 6
+    info = subprocess.STARTUPINFO()
+    info.dwFlags = subprocess.STARTF_USESHOWWINDOW
+    info.wShowWindow = SW_MINIMIZE
+    subprocess.Popen(qingtian_path, startupinfo=info)
 
     # SW_MINIMIZE = 6
     # info = subprocess.STARTUPINFO()
@@ -89,7 +94,9 @@ def save_catalog_from_ss(ss,target_dir2=target_dir,filename=None,error_dir=None)
 
     time.sleep(2)
     ori_ss=ss
-    qingtian_hd=win32gui.FindWindowEx(None,0,0,qingtian_name)
+    qingtian_hd=None
+    while not qingtian_hd:
+        qingtian_hd=win32gui.FindWindowEx(None,0,0,qingtian_name)
     feedSS_hd=get_hd_from_child_hds(qingtian_hd,6,'')
     win32gui.SendMessage(feedSS_hd,win32con.WM_SETTEXT,0,ss)
     time.sleep(2)
@@ -102,29 +109,51 @@ def save_catalog_from_ss(ss,target_dir2=target_dir,filename=None,error_dir=None)
     # cnt=0
     # while cnt!=5:
 
-    bookmark_pos=(755, 378)
-    click_on_pos(bookmark_pos)
 
-    # 全选操作
 
-    win32api.keybd_event(17,0,0,0)  #ctrl键位码是17
-    win32api.keybd_event(65,0,0,0)  #A键位码是65
-    win32api.keybd_event(65,0,win32con.KEYEVENTF_KEYUP,0) #释放按键
-    win32api.keybd_event(17,0,win32con.KEYEVENTF_KEYUP,0)
+    # bookmark_pos=(755, 378)
+    # click_on_pos(bookmark_pos)
 
-    # 复制操作
+    # # 全选操作
 
-    win32api.keybd_event(17,0,0,0)  #ctrl键位码是17
-    win32api.keybd_event(67,0,0,0)  #C键位码是67
-    win32api.keybd_event(67,0,win32con.KEYEVENTF_KEYUP,0) #释放按键
-    win32api.keybd_event(17,0,win32con.KEYEVENTF_KEYUP,0)
+    # win32api.keybd_event(17,0,0,0)  #ctrl键位码是17
+    # win32api.keybd_event(65,0,0,0)  #A键位码是65
+    # win32api.keybd_event(65,0,win32con.KEYEVENTF_KEYUP,0) #释放按键
+    # win32api.keybd_event(17,0,win32con.KEYEVENTF_KEYUP,0)
 
+    # # 复制操作
+
+    # win32api.keybd_event(17,0,0,0)  #ctrl键位码是17
+    # win32api.keybd_event(67,0,0,0)  #C键位码是67
+    # win32api.keybd_event(67,0,win32con.KEYEVENTF_KEYUP,0) #释放按键
+    # win32api.keybd_event(17,0,win32con.KEYEVENTF_KEYUP,0)
+
+    # time.sleep(1)
+
+    # text = getText()  # 得到剪切板上的数据
+    # # byte_str_charset = chardet.detect(byte_str)  # 获取字节码编码格式
+    # # print(byte_str_charset)
+    # # byte_str = str(byte_str, byte_str_charset.get('encoding'))  # 将八进制字节转化为字符串
+
+    bookmark_hd=get_hd_from_child_hds(qingtian_hd,1,'')
+
+    # 我终于知道我错在哪里了
+    # https://blog.csdn.net/sinat_33384251/article/details/89444945
+    
+    # 这里有3个length！！！赋值的时候一定不要弄错！！！
+
+    length = win32gui.SendMessage(bookmark_hd, win32con.WM_GETTEXTLENGTH)
+    length2=length*2+2
+    time.sleep(0.5)
+    buf = win32gui.PyMakeBuffer(length2)
+    #发送获取文本请求
+    win32api.SendMessage(bookmark_hd, win32con.WM_GETTEXT, length2, buf)
     time.sleep(1)
+    #下面应该是将内存读取文本
+    address, length3 = win32gui.PyGetBufferAddressAndLen(buf[:-1])
+    # time.sleep(0.5)
+    text = win32gui.PyGetString(address, length3)[:length]
 
-    text = getText()  # 得到剪切板上的数据
-    # byte_str_charset = chardet.detect(byte_str)  # 获取字节码编码格式
-    # print(byte_str_charset)
-    # byte_str = str(byte_str, byte_str_charset.get('encoding'))  # 将八进制字节转化为字符串
     print(text)
 
     error_line = "没有查询到此SS的书签！"
